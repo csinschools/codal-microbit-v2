@@ -26,6 +26,7 @@ DEALINGS IN THE SOFTWARE.
 #define MICROBIT_H
 
 #include "MicroBitConfig.h"
+
 #include "CodalHeapAllocator.h"
 #include "codal-core/inc/types/Event.h"
 #include "CodalDevice.h"
@@ -89,7 +90,10 @@ DEALINGS IN THE SOFTWARE.
 #include "MicroBitStorage.h"
 
 //#include "MicroBitLightSensor.h"
-
+#define DMESG_ENABLE    1
+#define DEVICE_DMESG_BUFFER_SIZE 1024
+#define DMESG_SERIAL_DEBUG 1
+#define CODAL_DEBUG 1
 
 
 // Status flag values

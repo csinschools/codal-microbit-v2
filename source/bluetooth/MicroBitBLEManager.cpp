@@ -24,6 +24,7 @@ DEALINGS IN THE SOFTWARE.
 */
 
 #include "MicroBitConfig.h"
+#define MICROBIT_BLE_WHITELIST                  0
 
 #if CONFIG_ENABLED(DEVICE_BLE)
 
@@ -233,7 +234,7 @@ void MicroBitBLEManager::init( ManagedString deviceName, ManagedString serialNum
     if ( this->status & DEVICE_COMPONENT_RUNNING)
       return;
 
-    MICROBIT_DEBUG_DMESG( "MicroBitBLEManager::init");
+    //codal_dmesg_with_flush( "MicroBitBLEManager::init");
     
     MICROBIT_DEBUG_DMESG( "NRF_SDH_BLE_VS_UUID_COUNT = %d", (int) NRF_SDH_BLE_VS_UUID_COUNT);
     MICROBIT_DEBUG_DMESG( "NRF_SDH_BLE_GATTS_ATTR_TAB_SIZE = %x", (int) NRF_SDH_BLE_GATTS_ATTR_TAB_SIZE);
@@ -324,7 +325,7 @@ void MicroBitBLEManager::init( ManagedString deviceName, ManagedString serialNum
 #endif
 
 #if (MICROBIT_BLE_SECURITY_MODE == 2)
-    MICROBIT_DEBUG_DMESG( "Just Works security");
+    //codal_dmesg_with_flush( "Just Works security");
     sec_param.bond = true;
     sec_param.mitm = false;
     sec_param.lesc = 0;
@@ -338,7 +339,7 @@ void MicroBitBLEManager::init( ManagedString deviceName, ManagedString serialNum
     sec_param.kdist_peer.enc = 1;
     sec_param.kdist_peer.id = 1;
 #elif (MICROBIT_BLE_SECURITY_MODE == 1)
-    MICROBIT_DEBUG_DMESG( "No security");
+    //codal_dmesg_with_flush( "No security");
     sec_param.bond = false;
     sec_param.mitm = false;
     sec_param.lesc = 0;
@@ -352,7 +353,7 @@ void MicroBitBLEManager::init( ManagedString deviceName, ManagedString serialNum
     sec_param.kdist_peer.enc = 0;
     sec_param.kdist_peer.id = 0;
 #elif (MICROBIT_BLE_SECURITY_MODE == 3)
-    MICROBIT_DEBUG_DMESG( "Passkey security");
+    //codal_dmesg_with_flush( "Passkey security");
     sec_param.bond = true;
     sec_param.mitm = true;
     sec_param.lesc = 0;
@@ -388,12 +389,12 @@ void MicroBitBLEManager::init( ManagedString deviceName, ManagedString serialNum
         
     if ( enableBonding)
     {
-        MICROBIT_DEBUG_DMESG( "enableBonding");
+        //codal_dmesg_with_flush( "enableBonding");
         // If we're in pairing mode, review the size of the bond table.
         // If we're full, delete the lowest ranked.
         if ( getBondCount() >= MICROBIT_BLE_MAXIMUM_BONDS)
         {
-            MICROBIT_DEBUG_DMESG( "delete the lowest ranked peer");
+            //codal_dmesg_with_flush( "delete the lowest ranked peer");
             pm_peer_id_t highest_ranked_peer;
             uint32_t     highest_rank;
             pm_peer_id_t lowest_ranked_peer;
@@ -489,9 +490,13 @@ void MicroBitBLEManager::init( ManagedString deviceName, ManagedString serialNum
 // This is to further protect kids' privacy. If no-one initiates BLE, then the device is unreachable.
 // If whiltelisting is disabled, then we always advertise.
 #if CONFIG_ENABLED(MICROBIT_BLE_WHITELIST)
-    if ( getBondCount() > 0)
+    if ( getBondCount() > 0) {
 #endif
+
         advertise();
+#if CONFIG_ENABLED(MICROBIT_BLE_WHITELIST)
+    }
+#endif
 
     this->status |= DEVICE_COMPONENT_RUNNING;
 }
@@ -652,6 +657,7 @@ void MicroBitBLEManager::idleCallback()
  */
 void MicroBitBLEManager::advertise()
 {
+    //codal_dmesg_with_flush( "In MicroBitBLEManager::advertise()");
     MICROBIT_DEBUG_DMESG( "advertise");
     MICROBIT_BLE_ECHK( sd_ble_gap_adv_start( m_adv_handle, microbit_ble_CONN_CFG_TAG));
 }

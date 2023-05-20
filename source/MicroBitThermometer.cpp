@@ -122,6 +122,8 @@ int MicroBitThermometer::updateSample()
         // Schedule our next sample.
         sampleTime = system_timer_current_time() + samplePeriod;
 
+        //codal_dmesg_with_flush( "MicroBitThermometer::updateSample, temperature= %d", (int) temperature);
+
         // Send an event to indicate that we'e updated our temperature.
         Event e(id, MICROBIT_THERMOMETER_EVT_UPDATE);
     }

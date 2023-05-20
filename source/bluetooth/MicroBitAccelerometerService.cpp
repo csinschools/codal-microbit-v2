@@ -147,6 +147,7 @@ void MicroBitAccelerometerService::accelerometerUpdate(MicroBitEvent)
     if ( getConnected())
     {
         readXYZ();
+        //codal_dmesg_with_flush( "MicroBitAccelerometerService::accelerometerUpdate, X value= %d", (int) accelerometerDataCharacteristicBuffer[0]);
         notifyChrValue( mbbs_cIdxDATA, (uint8_t *)accelerometerDataCharacteristicBuffer, sizeof(accelerometerDataCharacteristicBuffer));
     }
 }

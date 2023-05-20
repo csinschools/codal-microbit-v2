@@ -35,7 +35,7 @@ DEALINGS IN THE SOFTWARE.
 
 
 const uint16_t MicroBitLEDService::serviceUUID               = 0xd91d;
-const uint16_t MicroBitLEDService::charUUID[ mbbs_cIdxCOUNT] = { 0x7b77, 0x93ee, 0x0d2d };
+const uint16_t MicroBitLEDService::charUUID[ mbbs_cIdxCOUNT] = { 0x7b77, 0x93ee, 0x0d2d, 0x0d2e };
 
 /**
   * Constructor.
@@ -49,6 +49,7 @@ MicroBitLEDService::MicroBitLEDService( BLEDevice &_ble, MicroBitDisplay &_displ
     // Initialise our characteristic values.
     memclr( matrixValue, sizeof( matrixValue));
     textValue[0]    = 0;
+    lightCharacteristicBuffer = 0;
     speedValue      = MICROBIT_DEFAULT_SCROLL_SPEED;
     
     // Register the base UUID and create the service.
@@ -70,8 +71,65 @@ MicroBitLEDService::MicroBitLEDService( BLEDevice &_ble, MicroBitDisplay &_displ
                          (uint8_t *)&speedValue,
                          sizeof(speedValue), sizeof(speedValue),
                          microbit_propWRITE | microbit_propREAD);
+
+    CreateCharacteristic( mbbs_cIdxLIGHT,  charUUID[ mbbs_cIdxLIGHT],
+                         (uint8_t *)&lightCharacteristicBuffer,
+                         sizeof(lightCharacteristicBuffer), sizeof(lightCharacteristicBuffer),
+                         microbit_propREAD | microbit_propNOTIFY);
+
+    // needed for NOTIFY characteristics? adding here for the new light one
+    if ( getConnected())
+        listen( true);
 }
 
+/**
+  * Invoked when BLE connects.
+  */
+void MicroBitLEDService::onConnect( const microbit_ble_evt_t *p_ble_evt)
+{
+    listen( true);
+}
+
+
+/**
+  * Invoked when BLE disconnects.
+  */
+void MicroBitLEDService::onDisconnect( const microbit_ble_evt_t *p_ble_evt)
+{
+    listen( false);
+}
+
+/**
+  * Set up or tear down event listers
+  */
+void MicroBitLEDService::listen( bool yes)
+{
+    if (EventModel::defaultEventBus)
+    {
+        if ( yes)
+        {
+            // Ensure thermometer is being updated
+            lightCharacteristicBuffer   = display.readLightLevel();
+            EventModel::defaultEventBus->listen(MICROBIT_ID_DISPLAY, MICROBIT_DISPLAY_EVT_LIGHT_READ, this, &MicroBitLEDService::lightUpdate, MESSAGE_BUS_LISTENER_IMMEDIATE);
+        }
+        else
+        {
+            EventModel::defaultEventBus->ignore(MICROBIT_ID_DISPLAY, MICROBIT_DISPLAY_EVT_LIGHT_READ, this, &MicroBitLEDService::lightUpdate);
+        }
+    }
+}
+
+/**
+  * Light update callback
+  */
+void MicroBitLEDService::lightUpdate(MicroBitEvent)
+{
+    if ( getConnected())
+    {        
+        lightCharacteristicBuffer   = display.readLightLevel();
+        notifyChrValue( mbbs_cIdxLIGHT, (uint8_t *)&lightCharacteristicBuffer, sizeof(lightCharacteristicBuffer));
+    }
+}
 
 /**
   * Callback. Invoked when any of our attributes are written via BLE.
@@ -132,6 +190,12 @@ void MicroBitLEDService::onDataRead( microbit_onDataRead_t *params)
 
         params->data    = matrixValue;
         params->length  = sizeof(matrixValue);
+    }
+    else if (params->handle == valueHandle( mbbs_cIdxLIGHT))
+    {
+        params->data    = &lightCharacteristicBuffer;
+        params->length  = sizeof(lightCharacteristicBuffer);
+
     }
 }
 

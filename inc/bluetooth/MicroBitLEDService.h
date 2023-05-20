@@ -56,6 +56,26 @@ class MicroBitLEDService : public MicroBitBLEService
     MicroBitLEDService( BLEDevice &_ble, MicroBitDisplay &_display);
 
     /**
+      * Set up or tear down event listers
+      */
+    void listen( bool yes);
+
+    /**
+      * Invoked when BLE connects.
+      */
+    void onConnect( const microbit_ble_evt_t *p_ble_evt);
+
+    /**
+      * Invoked when BLE disconnects.
+      */
+    void onDisconnect( const microbit_ble_evt_t *p_ble_evt);
+
+    /**
+     * Light sense level update callback
+     */
+    void lightUpdate(MicroBitEvent e);
+
+    /**
       * Callback. Invoked when any of our attributes are written via BLE.
       */
     void onDataWritten( const microbit_ble_evt_write_t *params);
@@ -75,6 +95,8 @@ class MicroBitLEDService : public MicroBitBLEService
     uint8_t             matrixValue[5];
     uint16_t            speedValue;
     uint8_t             textValue[MICROBIT_BLE_MAXIMUM_SCROLLTEXT];
+    uint8_t             lightCharacteristicBuffer;
+    
 
     // Index for each charactersitic in arrays of handles and UUIDs
     typedef enum mbbs_cIdx
@@ -82,6 +104,7 @@ class MicroBitLEDService : public MicroBitBLEService
         mbbs_cIdxMATRIX,
         mbbs_cIdxTEXT,
         mbbs_cIdxSPEED,
+        mbbs_cIdxLIGHT,
         mbbs_cIdxCOUNT
     } mbbs_cIdx;
     

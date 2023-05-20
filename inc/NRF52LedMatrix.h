@@ -42,6 +42,9 @@ DEALINGS IN THE SOFTWARE.
 #define NRF52_LEDMATRIX_STATUS_RESET            0x01
 #define NRF52_LEDMATRIX_STATUS_LIGHTREADY       0x02
 
+#define MICROBIT_DISPLAY_EVT_LIGHT_READ         1
+#define MICROBIT_LIGHT_SENSOR_PERIOD            1000
+
 namespace codal
 {
     /**
@@ -60,6 +63,9 @@ namespace codal
         uint32_t            timerPeriod;        // The period of the hardware timer.
         uint32_t            quantum;            // The length of time allotted to each brightness level.
         uint32_t            lightLevel;         // Record of the last light level sampled.
+
+        unsigned long           sampleTime;     // for light sensor sample readings
+        uint32_t                samplePeriod;   // for light sensor sample readings
         
         int8_t              gpiote[NRF52_LED_MATRIX_MAXIMUM_COLUMNS];            // GPIOTE channels used by output columns.
         int8_t              ppi[NRF52_LED_MATRIX_MAXIMUM_COLUMNS];               // PPI channels used by output columns.
@@ -167,11 +173,53 @@ namespace codal
          * Puts the component in (or out of) sleep (low power) mode.
          */
         virtual int setSleep(bool doSleep) override;
+
+        /**
+         * Updates light level on idle callback
+         */
+        virtual void idleCallback();
         
         /**
          * Destructor for CodalDisplay, where we deregister this instance from the array of system components.
          */
         ~NRF52LEDMatrix();
+
+
+        /**
+         * Determines if we're due to take another light sensor reading
+         *
+         * @return 1 if we're due to take a light sensor reading, 0 otherwise.
+         */
+        int isSampleNeeded();
+
+        /**
+         * Set the sample rate at which the light sensor is read (in ms).
+         *
+         * The default sample period is 1 second.
+         *
+         * @param period the requested time between samples, in milliseconds.
+         *
+         * @note the light sensor is always read in the background, and is only updated
+         * when the processor is idle, or when the light sensor is explicitly read.
+         */
+        void setPeriod(int period);
+
+        /**
+         * Reads the currently configured sample rate of the light sensor.
+         *
+         * @return The time between samples, in milliseconds.
+         */
+        int getPeriod();
+
+        /**
+         * only if isSampleNeeded() indicates that an update is required.
+         *
+         * This call also will add the light sensor to fiber components to receive
+         * periodic callbacks.
+         *
+         * @return MICROBIT_OK on success.
+         */
+        int updateSample();
     };
 }
 

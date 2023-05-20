@@ -31,6 +31,7 @@ DEALINGS IN THE SOFTWARE.
 #include "NRF52Pin.h"
 #include "CodalDmesg.h"
 #include "ErrorNo.h"
+#include "codal-core/inc/driver-models/Timer.h"
 
 using namespace codal;
 
@@ -61,6 +62,9 @@ NRF52LEDMatrix::NRF52LEDMatrix(NRFLowLevelTimer &displayTimer, const MatrixMap &
     instance = this;
     lightLevel = 0;
     this->mode = mode;
+
+    this->samplePeriod = MICROBIT_LIGHT_SENSOR_PERIOD;
+    this->sampleTime = 0;
 
     // Validate that we can deliver the requested display.
     if (matrixMap.columns <= NRF52_LED_MATRIX_MAXIMUM_COLUMNS)
@@ -355,6 +359,8 @@ int NRF52LEDMatrix::setBrightness(int b)
 int 
 NRF52LEDMatrix::readLightLevel()
 {
+    //codal_dmesg_with_flush( "NRF52LEDMatrix::readLightLevel(), mode=%d", (int) mode);
+    updateSample();
     // Auto-enable light sensing if it is currently disabled
     if (mode == DisplayMode::DISPLAY_MODE_BLACK_AND_WHITE)
     {
@@ -370,9 +376,83 @@ NRF52LEDMatrix::readLightLevel()
 
     // if we've just enabled light sensing, ensure we have a valid reading before returning.
     if ( ( status & NRF52_LEDMATRIX_STATUS_LIGHTREADY) == 0)
-        fiber_sleep(1500.0f/((float)NRF52_LED_MATRIX_FREQUENCY));
-
+        return 0;
+        //fiber_sleep(1500.0f/((float)NRF52_LED_MATRIX_FREQUENCY));
     return lightLevel;
+}
+
+/**
+  * Periodic callback from MicroBit idle thread.
+  */
+void NRF52LEDMatrix::idleCallback()
+{
+    //codal_dmesg_with_flush( "NRF52LEDMatrix::idleCallback(), lightLevel=%d", (int) lightLevel);
+    updateSample();
+}
+
+/**
+  * Updates the temperature sample of this instance of MicroBitThermometer
+  * only if isSampleNeeded() indicates that an update is required.
+  *
+  * This call also will add the thermometer to fiber components to receive
+  * periodic callbacks.
+  *
+  * @return DEVICE_OK on success.
+  */
+int NRF52LEDMatrix::updateSample()
+{
+    // Ensure we're registered for a background processing callbacks.
+    status |= DEVICE_COMPONENT_STATUS_IDLE_TICK;
+
+    // check if we need to update our sample...
+    if(isSampleNeeded())
+    {
+        // Schedule our next sample.
+        sampleTime = system_timer_current_time() + samplePeriod;
+
+        // Send an event to indicate that we'e updated our light sensor.
+        Event e(DEVICE_ID_DISPLAY, MICROBIT_DISPLAY_EVT_LIGHT_READ);
+
+        //codal_dmesg_with_flush( "NRF52LEDMatrix::updateSample(), lightLevel=%d", (int) lightLevel);
+    }
+
+    return DEVICE_OK;
+};
+
+/**
+  * Determines if we're due to take another light sensor reading
+  *
+  * @return 1 if we're due to take a light sensor reading, 0 otherwise.
+  */
+int NRF52LEDMatrix::isSampleNeeded()
+{
+    return  system_timer_current_time() >= sampleTime;
+}
+
+/**
+  * Set the sample rate at which the light sensor read (in ms).
+  *
+  * The default sample period is 1 second.
+  *
+  * @param period the requested time between samples, in milliseconds.
+  *
+  * @note the temperature is always read in the background, and is only updated
+  * when the processor is idle, or when the temperature is explicitly read.
+  */
+void NRF52LEDMatrix::setPeriod(int period)
+{
+    updateSample();
+    samplePeriod = period;
+}
+
+/**
+  * Reads the currently configured sample rate of the light sensor.
+  *
+  * @return The time between samples, in milliseconds.
+  */
+int NRF52LEDMatrix::getPeriod()
+{
+    return samplePeriod;
 }
 
 /**
